@@ -1,20 +1,40 @@
 'use client';
 
 import React from 'react';
-import { CellState, Coordinate } from '../../types';
+import type { CellState, Coordinate, Grid } from '../../types';
 
 interface BoardProps {
-  /** 10x10 grid of cells (either 2D array or flat 100-item array) */
-  board: CellState[][] | CellState[];
+  /** 10x10 grid — accepts Grid (Cell[]), CellState[][], or CellState[] */
+  board: Grid | CellState[][] | CellState[];
   /** Callback when a cell is clicked */
   onCellClick: (coordinate: Coordinate) => void;
+  /** If true, clicking is disabled (visual-only board) */
+  disabled?: boolean;
+  /** If true, ship cells are rendered as empty (hides ship positions) */
+  hideShips?: boolean;
 }
 
-export const Board: React.FC<BoardProps> = ({ board, onCellClick }) => {
-  // Flatten board if it's 2D to simplify rendering with CSS Grid
-  const flatBoard = Array.isArray(board[0]) 
-    ? (board as CellState[][]).flat() 
-    : (board as CellState[]);
+export const Board: React.FC<BoardProps> = ({
+  board,
+  onCellClick,
+  disabled = false,
+  hideShips = false,
+}) => {
+  // Normalise into a flat CellState[] regardless of input shape
+  let flatBoard: CellState[];
+  if (board.length > 0 && typeof board[0] === 'object' && !Array.isArray(board[0]) && 'state' in (board[0] as object)) {
+    // Grid (Cell[])
+    flatBoard = (board as Grid).map((cell) => cell.state);
+  } else if (Array.isArray(board[0])) {
+    flatBoard = (board as CellState[][]).flat();
+  } else {
+    flatBoard = board as CellState[];
+  }
+
+  // Optionally hide ship cells
+  if (hideShips) {
+    flatBoard = flatBoard.map((s) => (s === 'ship' ? 'empty' : s));
+  }
 
   const getCellStyles = (state: CellState) => {
     switch (state) {
@@ -63,13 +83,12 @@ export const Board: React.FC<BoardProps> = ({ board, onCellClick }) => {
             return (
               <div
                 key={`${x}-${y}`}
-                onClick={() => onCellClick({ x, y })}
+                onClick={() => !disabled && onCellClick({ x, y })}
                 className={`
                   border border-slate-700/50
-                  cursor-pointer 
+                  ${disabled ? 'cursor-default' : 'cursor-pointer hover:bg-blue-400/20'}
                   transition-all
                   duration-150
-                  hover:bg-blue-400/20
                   relative
                   ${getCellStyles(state)}
                 `}
