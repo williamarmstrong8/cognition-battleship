@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Board } from '@/components/game/Board';
@@ -8,30 +8,61 @@ import ShipSelector from '@/components/game/ShipSelector';
 import GameControls from '@/components/game/GameControls';
 import FleetStatus from '@/components/game/FleetStatus';
 import TurnIndicator from '@/components/game/TurnIndicator';
+import { useGameState } from '@/hooks/useGameState';
 
 export default function Home() {
-  // Mock state
-  const [grid] = useState<Array<'empty' | 'ship' | 'hit' | 'miss'>[]>(
-    Array(100).fill('empty')
-  );
-  const [gameState] = useState<'setup'>('setup');
-  const [ships] = useState([
-    { id: 'carrier', type: 'Carrier' as const, length: 5, isPlaced: false, isSunk: false },
-    { id: 'battleship', type: 'Battleship' as const, length: 4, isPlaced: false, isSunk: false },
-    { id: 'cruiser', type: 'Cruiser' as const, length: 3, isPlaced: false, isSunk: false },
-    { id: 'submarine', type: 'Submarine' as const, length: 3, isPlaced: false, isSunk: false },
-    { id: 'destroyer', type: 'Destroyer' as const, length: 2, isPlaced: false, isSunk: false },
-  ]);
-  const [selectedShip, setSelectedShip] = useState<string | null>(null);
-  const [isHorizontal, setIsHorizontal] = useState(true);
+  const {
+    playerGrid,
+    aiGrid,
+    playerShips,
+    aiShips,
+    setupShips,
+    phase,
+    winner,
+    statusMessage,
+    selectedShipId,
+    isHorizontal,
+    selectShip,
+    toggleOrientation,
+    placeSelectedShip,
+    randomizePlayerShips,
+    startGame,
+    fireShot,
+    resetGame,
+  } = useGameState();
 
-  // Dummy functions
-  const handleCellClick = (coord: { x: number; y: number }) => console.log('Cell clicked:', coord);
-  const handleSelectShip = (id: string) => setSelectedShip(id);
-  const handleRotate = () => setIsHorizontal(!isHorizontal);
-  const handleStartGame = () => console.log('Start game');
-  const handleRandomizeFleet = () => console.log('Randomize fleet');
-  const handleResetGame = () => console.log('Reset game');
+  const allPlaced = setupShips.every((s) => s.isPlaced);
+
+  // Build fleet status data (works for both player & AI ships)
+  const playerFleetStatus = playerShips.map((s) => ({
+    id: s.id,
+    type: s.type,
+    length: s.length,
+    isSunk: s.isSunk,
+  }));
+
+  const aiFleetStatus = aiShips.map((s) => ({
+    id: s.id,
+    type: s.type,
+    length: s.length,
+    isSunk: s.isSunk,
+  }));
+
+  // During setup, show the default fleet for the enemy side
+  const enemyFleetForStatus =
+    phase === 'setup'
+      ? [
+          { id: 'carrier', type: 'Carrier' as const, length: 5, isSunk: false },
+          { id: 'battleship', type: 'Battleship' as const, length: 4, isSunk: false },
+          { id: 'cruiser', type: 'Cruiser' as const, length: 3, isSunk: false },
+          { id: 'submarine', type: 'Submarine' as const, length: 3, isSunk: false },
+          { id: 'destroyer', type: 'Destroyer' as const, length: 2, isSunk: false },
+        ]
+      : aiFleetStatus;
+
+  const isPlayerTurn = phase === 'setup' || phase === 'player_turn';
+  const isSetup = phase === 'setup';
+  const isGameOver = phase === 'game_over';
 
   return (
     <div className="min-h-screen bg-slate-900 text-white p-4">
@@ -44,46 +75,95 @@ export default function Home() {
         </Link>
       </header>
 
-      <TurnIndicator isPlayerTurn={gameState === 'setup'} />
+      {/* Status / Turn Indicator */}
+      {isGameOver ? (
+        <div className="flex justify-center p-6 bg-slate-950/50 rounded-xl border border-slate-800 shadow-inner max-w-7xl mx-auto mb-6">
+          <div className="flex flex-col items-center gap-4">
+            <span className={`text-3xl font-black uppercase tracking-[0.2em] ${winner === 'player' ? 'text-blue-400' : 'text-red-500'}`}>
+              {winner === 'player' ? 'Victory!' : 'Defeat!'}
+            </span>
+            <p className="text-slate-400">{statusMessage}</p>
+            <Button onClick={resetGame} className="bg-blue-600 hover:bg-blue-500 text-white font-bold uppercase">
+              New Game
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="max-w-7xl mx-auto mb-6">
+          <TurnIndicator isPlayerTurn={isPlayerTurn} />
+          <p className="text-center text-sm text-slate-400 mt-2">{statusMessage}</p>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-6">
+          {/* Player board */}
           <div className="flex-1">
             <div className="mb-4 text-center">
               <h2 className="text-2xl font-semibold">My Fleet</h2>
             </div>
-            <Board board={grid} onCellClick={handleCellClick} />
+            <Board
+              board={playerGrid}
+              onCellClick={isSetup ? placeSelectedShip : () => {}}
+              disabled={!isSetup}
+            />
           </div>
+
+          {/* AI board */}
           <div className="flex-1">
             <div className="mb-4 text-center">
               <h2 className="text-2xl font-semibold">Enemy Waters</h2>
             </div>
-            <Board board={grid} onCellClick={handleCellClick} />
+            <Board
+              board={aiGrid}
+              onCellClick={phase === 'player_turn' ? fireShot : () => {}}
+              disabled={phase !== 'player_turn'}
+              hideShips
+            />
           </div>
         </div>
 
-        <div className="mt-6 flex flex-col lg:flex-row gap-6">
-          <div className="flex-1">
-            <GameControls
-              allShipsPlaced={false}
-              onStartGame={handleStartGame}
-              onRandomizeFleet={handleRandomizeFleet}
-              onResetGame={handleResetGame}
-            />
+        {/* Controls — show during setup only */}
+        {isSetup && (
+          <div className="mt-6 flex flex-col lg:flex-row gap-6">
+            <div className="flex-1">
+              <GameControls
+                allShipsPlaced={allPlaced}
+                onStartGame={startGame}
+                onRandomizeFleet={randomizePlayerShips}
+                onResetGame={resetGame}
+              />
+            </div>
+            <div className="flex-1">
+              <ShipSelector
+                ships={setupShips}
+                selectedShip={selectedShipId}
+                onSelectShip={selectShip}
+                isHorizontal={isHorizontal}
+                onRotate={toggleOrientation}
+              />
+            </div>
           </div>
-          <div className="flex-1">
-            <ShipSelector
-              ships={ships}
-              selectedShip={selectedShip}
-              onSelectShip={handleSelectShip}
-              isHorizontal={isHorizontal}
-              onRotate={handleRotate}
-            />
+        )}
+
+        {/* Reset button during active game */}
+        {!isSetup && !isGameOver && (
+          <div className="mt-6 flex justify-center">
+            <Button
+              onClick={resetGame}
+              variant="destructive"
+              className="bg-red-950/30 border border-red-900/50 text-red-500 hover:bg-red-900/40 hover:text-red-400"
+            >
+              Abort Mission
+            </Button>
           </div>
-        </div>
+        )}
 
         <div className="mt-6">
-          <FleetStatus playerShips={ships} enemyShips={ships} />
+          <FleetStatus
+            playerShips={playerFleetStatus.length > 0 ? playerFleetStatus : setupShips}
+            enemyShips={enemyFleetForStatus}
+          />
         </div>
       </div>
     </div>
