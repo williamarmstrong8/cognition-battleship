@@ -55,6 +55,7 @@ export interface UseGameStateReturn {
   selectShip: (id: string) => void;
   toggleOrientation: () => void;
   placeSelectedShip: (coordinate: Coordinate) => void;
+  placeShipDirect: (shipId: string, coordinate: Coordinate, orientation: Orientation) => void;
   randomizePlayerShips: () => void;
 
   // game actions
@@ -223,6 +224,29 @@ export function useGameState(): UseGameStateReturn {
       setStatusMessage(`${def.type} deployed.`);
     },
     [phase, selectedShipId, isHorizontal, playerGrid, placedShipIds],
+  );
+
+  const placeShipDirect = useCallback(
+    (shipId: string, coordinate: Coordinate, orientation: Orientation) => {
+      if (phase !== "setup") return;
+      const def = FLEET.find((d) => d.type.toLowerCase() === shipId);
+      if (!def) return;
+      if (placedShipIds.has(shipId)) return;
+      if (!canPlaceShip(playerGrid, def.length, coordinate, orientation)) return;
+
+      const ship = createShipFromDefinition(def, coordinate, orientation);
+      const newGrid = placeShip(playerGrid, ship);
+      setPlayerGrid(newGrid);
+      setPlayerShips((prev) => [...prev, ship]);
+      setPlacedShipIds((prev) => {
+        const next = new Set(prev);
+        next.add(shipId);
+        return next;
+      });
+      setSelectedShipId(null);
+      setStatusMessage(`${def.type} deployed.`);
+    },
+    [phase, playerGrid, placedShipIds],
   );
 
   const randomizePlayerShips = useCallback(() => {
@@ -411,6 +435,7 @@ export function useGameState(): UseGameStateReturn {
     selectShip,
     toggleOrientation,
     placeSelectedShip,
+    placeShipDirect,
     randomizePlayerShips,
     startGame,
     fireShot,

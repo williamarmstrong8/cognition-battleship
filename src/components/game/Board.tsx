@@ -3,6 +3,14 @@
 import React from 'react';
 import type { CellState, Coordinate, Grid, Ship } from '../../types';
 
+/** A preview cell shown while dragging a ship over the board */
+export interface PreviewCell {
+  x: number;
+  y: number;
+  /** true = valid placement, false = blocked/out-of-bounds */
+  valid: boolean;
+}
+
 interface BoardProps {
   /** 10x10 grid — accepts Grid (Cell[]), CellState[][], or CellState[] */
   board: Grid | CellState[][] | CellState[];
@@ -14,6 +22,31 @@ interface BoardProps {
   hideShips?: boolean;
   /** Ships that have been fully sunk — their cells are revealed on the board */
   sunkShips?: Ship[];
+  /** Ghost preview cells rendered while dragging a ship over the board */
+  previewCells?: PreviewCell[];
+  /**
+   * Called continuously as the drag moves over the board.
+   * Coord is derived from mouse position — much more reliable than per-cell onDragEnter.
+   */
+  onBoardDragMove?: (coord: Coordinate) => void;
+  /** Called when the ship is dropped onto the board */
+  onBoardDrop?: (coord: Coordinate) => void;
+  /** Called when the drag leaves the board entirely */
+  onBoardDragLeave?: () => void;
+}
+
+/** Derive a grid coordinate from a mouse event on the 11×11 board container */
+function coordFromMouseEvent(
+  e: React.MouseEvent | React.DragEvent,
+  container: HTMLElement,
+): Coordinate | null {
+  const rect = container.getBoundingClientRect();
+  const cellW = rect.width / 11;
+  const cellH = rect.height / 11;
+  const col = Math.floor((e.clientX - rect.left) / cellW) - 1;
+  const row = Math.floor((e.clientY - rect.top) / cellH) - 1;
+  if (col < 0 || col > 9 || row < 0 || row > 9) return null;
+  return { x: col, y: row };
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -22,6 +55,10 @@ export const Board: React.FC<BoardProps> = ({
   disabled = false,
   hideShips = false,
   sunkShips = [],
+  previewCells = [],
+  onBoardDragMove,
+  onBoardDrop,
+  onBoardDragLeave,
 }) => {
   // Normalise into a flat CellState[] regardless of input shape
   let flatBoard: CellState[];
@@ -41,12 +78,9 @@ export const Board: React.FC<BoardProps> = ({
 
   // Build a set of coordinate keys belonging to sunk ships for quick lookup
   const sunkCellKeys = new Set<string>();
-  // Build a set of ALL ship cell coordinates (for showing boat UI behind hits)
-  const shipCellKeys = new Set<string>();
   for (const ship of sunkShips) {
-    for (const coord of ship.coordinates) {
-      shipCellKeys.add(`${coord.x},${coord.y}`);
-      if (ship.isSunk) {
+    if (ship.isSunk) {
+      for (const coord of ship.coordinates) {
         sunkCellKeys.add(`${coord.x},${coord.y}`);
       }
     }
@@ -57,7 +91,8 @@ export const Board: React.FC<BoardProps> = ({
       case 'ship':
         return 'bg-slate-400';
       case 'hit':
-        return 'bg-slate-400';
+        // A "hit" is a struck ship cell; render the ship backdrop behind the ping.
+        return 'bg-slate-400 shadow-inner';
       case 'miss':
         return 'bg-slate-100';
       case 'empty':
@@ -69,8 +104,33 @@ export const Board: React.FC<BoardProps> = ({
   const rows = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J'];
   const cols = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
+  // Build a fast lookup for preview cells
+  const previewMap = new Map<string, boolean>();
+  for (const p of previewCells) {
+    previewMap.set(`${p.x},${p.y}`, p.valid);
+  }
+
   return (
-    <div className="w-full aspect-square grid grid-cols-11 grid-rows-11 border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+    <div
+      className="w-full aspect-square grid grid-cols-11 grid-rows-11 border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden"
+      onDragOver={(e) => {
+        e.preventDefault();
+        if (!onBoardDragMove) return;
+        const coord = coordFromMouseEvent(e, e.currentTarget);
+        if (coord) onBoardDragMove(coord);
+      }}
+      onDrop={(e) => {
+        e.preventDefault();
+        if (!onBoardDrop) return;
+        const coord = coordFromMouseEvent(e, e.currentTarget);
+        if (coord) onBoardDrop(coord);
+      }}
+      onDragLeave={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+          onBoardDragLeave?.();
+        }
+      }}
+    >
       {/* Top-left corner */}
       <div className="min-w-0 min-h-0" />
       {/* Column headers (1–10) */}
@@ -82,7 +142,7 @@ export const Board: React.FC<BoardProps> = ({
           {col}
         </div>
       ))}
-      {/* Row labels + board rows: each row is one label + 10 cells */}
+      {/* Row labels + board rows */}
       {rows.map((row, rowIndex) => (
         <React.Fragment key={`row-${row}`}>
           <div className="flex items-center justify-center text-[9px] font-mono font-semibold text-slate-500 min-w-0 min-h-0">
@@ -91,22 +151,36 @@ export const Board: React.FC<BoardProps> = ({
           {flatBoard.slice(rowIndex * 10, rowIndex * 10 + 10).map((state, colIndex) => {
             const x = colIndex;
             const y = rowIndex;
-            const isSunkCell = sunkCellKeys.has(`${x},${y}`);
+            const key = `${x},${y}`;
+            const isSunkCell = sunkCellKeys.has(key);
+            const previewValid = previewMap.has(key) ? previewMap.get(key) : undefined;
+            const isPreview = previewValid !== undefined;
+
+            let bgClass: string;
+            if (isPreview) {
+              bgClass = previewValid
+                ? 'bg-sky-300/60 border-sky-400'
+                : 'bg-red-300/60 border-red-400';
+            } else if (isSunkCell) {
+              bgClass = 'bg-slate-600 shadow-inner border-slate-500';
+            } else {
+              bgClass = getCellStyles(state);
+            }
+
             return (
               <div
-                key={`${x}-${y}`}
+                key={key}
                 onClick={() => !disabled && onCellClick({ x, y })}
                 className={`
                   border border-slate-200
                   min-w-0 min-h-0
-                  ${!disabled && state === 'empty' ? 'cursor-pointer hover:bg-sky-100' : 'cursor-default'}
-                  transition-colors
-                  duration-100
+                  ${!disabled && state === 'empty' && !isPreview ? 'cursor-pointer hover:bg-sky-100' : 'cursor-default'}
+                  transition-colors duration-75
                   relative
-                  ${isSunkCell ? 'bg-slate-400' : (state === 'hit' && shipCellKeys.has(`${x},${y}`)) ? 'bg-slate-400' : getCellStyles(state)}
+                  ${bgClass}
                 `}
               >
-                {state === 'hit' && (
+                {state === 'hit' && !isPreview && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     {isSunkCell ? (
                       <span className="relative flex h-3 w-3">
@@ -120,7 +194,7 @@ export const Board: React.FC<BoardProps> = ({
                     )}
                   </div>
                 )}
-                {state === 'miss' && (
+                {state === 'miss' && !isPreview && (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
                   </div>
