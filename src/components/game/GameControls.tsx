@@ -15,37 +15,37 @@ const GameControls: React.FC<GameControlsProps> = ({
   onResetGame,
 }) => {
   return (
-    <div className="flex flex-col space-y-6 bg-slate-900 p-6 rounded-xl border border-slate-700 shadow-xl">
-      <div className="text-center border-b border-slate-800 pb-4">
-        <h2 className="text-xl font-bold text-blue-400 tracking-tight uppercase">Command Center</h2>
-        <p className="text-xs text-slate-500 mt-1 uppercase tracking-widest">System Operations</p>
+    <div className="flex flex-col space-y-5 bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+      <div className="border-b border-slate-200 pb-4">
+        <h2 className="text-sm font-semibold text-slate-900 tracking-tight">Command Center</h2>
+        <p className="text-[10px] text-slate-500 mt-0.5 tracking-widest uppercase">System Operations</p>
       </div>
 
       <div className="flex flex-col gap-3">
         <Button
           onClick={onStartGame}
           disabled={!allShipsPlaced}
-          className={`w-full py-6 text-lg font-bold uppercase tracking-tighter transition-all duration-300 ${
-            allShipsPlaced 
-              ? 'bg-blue-600 hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.4)] text-white' 
-              : 'bg-slate-800 text-slate-500 border-slate-700'
+          className={`w-full py-6 text-sm font-semibold uppercase tracking-widest transition-all duration-300 rounded-lg ${
+            allShipsPlaced
+              ? 'bg-sky-600 hover:bg-sky-500 shadow-[0_0_20px_rgba(14,165,233,0.25)] text-white'
+              : 'bg-slate-100 text-slate-400 border border-slate-200'
           }`}
         >
           {allShipsPlaced ? 'Initiate Combat' : 'Awaiting Deployment'}
         </Button>
 
         <div className="grid grid-cols-2 gap-3">
-          <Button 
-            onClick={onRandomizeFleet} 
-            variant="outline" 
-            className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white"
+          <Button
+            onClick={onRandomizeFleet}
+            variant="outline"
+            className="border-slate-300 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-400"
           >
             Auto-Deploy
           </Button>
-          <Button 
-            onClick={onResetGame} 
+          <Button
+            onClick={onResetGame}
             variant="destructive"
-            className="bg-red-950/30 border border-red-900/50 text-red-500 hover:bg-red-900/40 hover:text-red-400"
+            className="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700"
           >
             Abort Mission
           </Button>
@@ -53,9 +53,9 @@ const GameControls: React.FC<GameControlsProps> = ({
       </div>
 
       {!allShipsPlaced && (
-        <div className="bg-blue-950/20 border border-blue-900/30 rounded-lg p-3">
-          <p className="text-[10px] text-blue-400/70 text-center leading-tight uppercase tracking-tight">
-            Notice: All vessels must be assigned coordinates before engagement protocols can be authorized.
+        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3">
+          <p className="text-[10px] text-slate-500 text-center leading-relaxed tracking-wide">
+            All vessels must be assigned coordinates before engagement can begin.
           </p>
         </div>
       )}

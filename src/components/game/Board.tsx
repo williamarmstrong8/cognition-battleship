@@ -52,14 +52,14 @@ export const Board: React.FC<BoardProps> = ({
   const getCellStyles = (state: CellState) => {
     switch (state) {
       case 'ship':
-        return 'bg-slate-600 shadow-inner';
+        return 'bg-slate-400';
       case 'hit':
-        return 'bg-slate-800';
+        return 'bg-slate-100';
       case 'miss':
-        return 'bg-slate-800';
+        return 'bg-slate-100';
       case 'empty':
       default:
-        return 'bg-blue-900/40';
+        return 'bg-slate-100';
     }
   };
 
@@ -67,66 +67,66 @@ export const Board: React.FC<BoardProps> = ({
   const cols = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'];
 
   return (
-    <div className="flex flex-col items-center">
-      {/* Column Headers (1-10) */}
-      <div className="grid grid-cols-11 w-full mb-1">
-        <div className="w-8 h-8 flex items-center justify-center" /> {/* Top-left empty spacer */}
-        {cols.map((col) => (
-          <div key={col} className="flex items-center justify-center text-[10px] font-mono font-bold text-slate-500 uppercase tracking-tighter">
-            {col}
-          </div>
-        ))}
-      </div>
-
-      <div className="flex w-full">
-        {/* Row Headers (A-J) */}
-        <div className="flex flex-col mr-1">
-          {rows.map((row) => (
-            <div key={row} className="w-8 h-8 flex items-center justify-center text-[10px] font-mono font-bold text-slate-500 uppercase">
-              {row}
-            </div>
-          ))}
+    <div className="w-full aspect-square grid grid-cols-11 grid-rows-11 border border-slate-200 shadow-sm bg-white rounded-lg overflow-hidden">
+      {/* Top-left corner */}
+      <div className="min-w-0 min-h-0" />
+      {/* Column headers (1–10) */}
+      {cols.map((col) => (
+        <div
+          key={`col-${col}`}
+          className="flex items-center justify-center text-[9px] font-mono font-semibold text-slate-500 tracking-tight min-w-0 min-h-0"
+        >
+          {col}
         </div>
-
-        <div className="grid grid-cols-10 gap-0 border-4 border-slate-700 w-full aspect-square shadow-2xl bg-slate-800 p-1 rounded-sm flex-1">
-          {flatBoard.map((state, index) => {
-            const x = index % 10;
-            const y = Math.floor(index / 10);
-            
+      ))}
+      {/* Row labels + board rows: each row is one label + 10 cells */}
+      {rows.map((row, rowIndex) => (
+        <React.Fragment key={`row-${row}`}>
+          <div className="flex items-center justify-center text-[9px] font-mono font-semibold text-slate-500 min-w-0 min-h-0">
+            {row}
+          </div>
+          {flatBoard.slice(rowIndex * 10, rowIndex * 10 + 10).map((state, colIndex) => {
+            const x = colIndex;
+            const y = rowIndex;
             const isSunkCell = sunkCellKeys.has(`${x},${y}`);
-
             return (
               <div
                 key={`${x}-${y}`}
                 onClick={() => !disabled && onCellClick({ x, y })}
                 className={`
-                  border border-slate-700/50
-                  ${disabled ? 'cursor-default' : 'cursor-pointer hover:bg-blue-400/20'}
-                  transition-all
-                  duration-150
+                  border border-slate-200
+                  min-w-0 min-h-0
+                  ${!disabled && state === 'empty' ? 'cursor-pointer hover:bg-sky-100' : 'cursor-default'}
+                  transition-colors
+                  duration-100
                   relative
                   ${isSunkCell ? 'bg-slate-600 shadow-inner' : getCellStyles(state)}
                 `}
               >
                 {state === 'hit' && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className={`w-2/3 h-2/3 rounded-full ${
-                      isSunkCell
-                        ? 'bg-red-800 shadow-[0_0_8px_rgba(220,38,38,0.6)]'
-                        : 'bg-red-600 animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.8)]'
-                    }`} />
+                    {isSunkCell ? (
+                      <span className="relative flex h-3 w-3">
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-800 shadow-[0_0_8px_rgba(220,38,38,0.6)]" />
+                      </span>
+                    ) : (
+                      <span className="relative flex h-3 w-3">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-50" />
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.6)]" />
+                      </span>
+                    )}
                   </div>
                 )}
                 {state === 'miss' && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-1/3 h-1/3 bg-slate-400 rounded-full opacity-60" />
+                    <div className="w-1.5 h-1.5 bg-slate-400 rounded-full" />
                   </div>
                 )}
               </div>
             );
           })}
-        </div>
-      </div>
+        </React.Fragment>
+      ))}
     </div>
   );
 };
