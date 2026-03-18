@@ -41,9 +41,12 @@ export const Board: React.FC<BoardProps> = ({
 
   // Build a set of coordinate keys belonging to sunk ships for quick lookup
   const sunkCellKeys = new Set<string>();
+  // Build a set of ALL ship cell coordinates (for showing boat UI behind hits)
+  const shipCellKeys = new Set<string>();
   for (const ship of sunkShips) {
-    if (ship.isSunk) {
-      for (const coord of ship.coordinates) {
+    for (const coord of ship.coordinates) {
+      shipCellKeys.add(`${coord.x},${coord.y}`);
+      if (ship.isSunk) {
         sunkCellKeys.add(`${coord.x},${coord.y}`);
       }
     }
@@ -54,7 +57,7 @@ export const Board: React.FC<BoardProps> = ({
       case 'ship':
         return 'bg-slate-600 shadow-inner';
       case 'hit':
-        return 'bg-slate-800';
+        return 'bg-slate-600 shadow-inner';
       case 'miss':
         return 'bg-slate-800';
       case 'empty':
@@ -105,7 +108,7 @@ export const Board: React.FC<BoardProps> = ({
                   transition-all
                   duration-150
                   relative
-                  ${isSunkCell ? 'bg-slate-600 shadow-inner' : getCellStyles(state)}
+                  ${isSunkCell ? 'bg-slate-600 shadow-inner' : (state === 'hit' && shipCellKeys.has(`${x},${y}`)) ? 'bg-slate-600 shadow-inner' : getCellStyles(state)}
                 `}
               >
                 {state === 'hit' && (

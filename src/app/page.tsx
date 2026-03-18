@@ -88,54 +88,40 @@ export default function Home() {
             </Button>
           </div>
         </div>
-      ) : (
+      ) : !isSetup ? (
         <div className="max-w-7xl mx-auto mb-6">
           <TurnIndicator isPlayerTurn={isPlayerTurn} />
           <p className="text-center text-sm text-slate-400 mt-2">{statusMessage}</p>
         </div>
-      )}
+      ) : null}
 
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Player board */}
-          <div className="flex-1">
-            <div className="mb-4 text-center">
-              <h2 className="text-2xl font-semibold">My Fleet</h2>
-            </div>
-            <Board
-              board={playerGrid}
-              onCellClick={isSetup ? placeSelectedShip : () => {}}
-              disabled={!isSetup}
-              sunkShips={playerShips}
-            />
-          </div>
-
-          {/* AI board */}
-          <div className="flex-1">
-            <div className="mb-4 text-center">
-              <h2 className="text-2xl font-semibold">Enemy Waters</h2>
-            </div>
-            <Board
-              board={aiGrid}
-              onCellClick={phase === 'player_turn' ? fireShot : () => {}}
-              disabled={phase !== 'player_turn'}
-              hideShips
-              sunkShips={aiShips}
-            />
-          </div>
-        </div>
-
-        {/* Controls — show during setup only */}
-        {isSetup && (
-          <div className="mt-6 flex flex-col lg:flex-row gap-6">
+        {isSetup ? (
+          /* Setup phase: Command Grid + Fleet Assembly side by side */
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Player board */}
             <div className="flex-1">
-              <GameControls
-                allShipsPlaced={allPlaced}
-                onStartGame={startGame}
-                onRandomizeFleet={randomizePlayerShips}
-                onResetGame={resetGame}
+              <div className="mb-4 text-center">
+                <h2 className="text-2xl font-semibold">My Fleet Command Grid</h2>
+              </div>
+              <Board
+                board={playerGrid}
+                onCellClick={placeSelectedShip}
+                disabled={false}
+                sunkShips={playerShips}
               />
+              <div className="mt-4 text-center text-sm text-slate-400">{statusMessage}</div>
+              <div className="mt-4">
+                <GameControls
+                  allShipsPlaced={allPlaced}
+                  onStartGame={startGame}
+                  onRandomizeFleet={randomizePlayerShips}
+                  onResetGame={resetGame}
+                />
+              </div>
             </div>
+
+            {/* Fleet Assembly (ship selector) */}
             <div className="flex-1">
               <ShipSelector
                 ships={setupShips}
@@ -143,6 +129,36 @@ export default function Home() {
                 onSelectShip={selectShip}
                 isHorizontal={isHorizontal}
                 onRotate={toggleOrientation}
+              />
+            </div>
+          </div>
+        ) : (
+          /* Active game: both grids side by side */
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Player board */}
+            <div className="flex-1">
+              <div className="mb-4 text-center">
+                <h2 className="text-2xl font-semibold">My Fleet</h2>
+              </div>
+              <Board
+                board={playerGrid}
+                onCellClick={() => {}}
+                disabled
+                sunkShips={playerShips}
+              />
+            </div>
+
+            {/* AI board */}
+            <div className="flex-1">
+              <div className="mb-4 text-center">
+                <h2 className="text-2xl font-semibold">Enemy Waters</h2>
+              </div>
+              <Board
+                board={aiGrid}
+                onCellClick={phase === 'player_turn' ? fireShot : () => {}}
+                disabled={phase !== 'player_turn'}
+                hideShips
+                sunkShips={aiShips}
               />
             </div>
           </div>
@@ -161,12 +177,14 @@ export default function Home() {
           </div>
         )}
 
-        <div className="mt-6">
-          <FleetStatus
-            playerShips={playerFleetStatus.length > 0 ? playerFleetStatus : setupShips}
-            enemyShips={enemyFleetForStatus}
-          />
-        </div>
+        {!isSetup && (
+          <div className="mt-6">
+            <FleetStatus
+              playerShips={playerFleetStatus.length > 0 ? playerFleetStatus : setupShips}
+              enemyShips={enemyFleetForStatus}
+            />
+          </div>
+        )}
       </div>
     </div>
   );
