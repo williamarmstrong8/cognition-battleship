@@ -316,19 +316,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Abort button during active game */}
-        {!isSetup && !isGameOver && (
-          <div className="flex justify-center">
-            <Button
-              onClick={resetGame}
-              variant="destructive"
-              className="bg-red-50 border border-red-200 text-red-600 hover:bg-red-100 hover:text-red-700"
-            >
-              Abort Mission
-            </Button>
-          </div>
-        )}
-
         {/* Fleet Status (only after the game has started) */}
         {!isSetup && (
           <FleetStatus
