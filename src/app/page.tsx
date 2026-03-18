@@ -106,6 +106,7 @@ export default function Home() {
               board={playerGrid}
               onCellClick={isSetup ? placeSelectedShip : () => {}}
               disabled={!isSetup}
+              sunkShips={playerShips}
             />
           </div>
 
@@ -119,6 +120,7 @@ export default function Home() {
               onCellClick={phase === 'player_turn' ? fireShot : () => {}}
               disabled={phase !== 'player_turn'}
               hideShips
+              sunkShips={aiShips}
             />
           </div>
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import type { CellState, Coordinate, Grid } from '../../types';
+import type { CellState, Coordinate, Grid, Ship } from '../../types';
 
 interface BoardProps {
   /** 10x10 grid — accepts Grid (Cell[]), CellState[][], or CellState[] */
@@ -12,6 +12,8 @@ interface BoardProps {
   disabled?: boolean;
   /** If true, ship cells are rendered as empty (hides ship positions) */
   hideShips?: boolean;
+  /** Ships that have been fully sunk — their cells are revealed on the board */
+  sunkShips?: Ship[];
 }
 
 export const Board: React.FC<BoardProps> = ({
@@ -19,6 +21,7 @@ export const Board: React.FC<BoardProps> = ({
   onCellClick,
   disabled = false,
   hideShips = false,
+  sunkShips = [],
 }) => {
   // Normalise into a flat CellState[] regardless of input shape
   let flatBoard: CellState[];
@@ -34,6 +37,16 @@ export const Board: React.FC<BoardProps> = ({
   // Optionally hide ship cells
   if (hideShips) {
     flatBoard = flatBoard.map((s) => (s === 'ship' ? 'empty' : s));
+  }
+
+  // Build a set of coordinate keys belonging to sunk ships for quick lookup
+  const sunkCellKeys = new Set<string>();
+  for (const ship of sunkShips) {
+    if (ship.isSunk) {
+      for (const coord of ship.coordinates) {
+        sunkCellKeys.add(`${coord.x},${coord.y}`);
+      }
+    }
   }
 
   const getCellStyles = (state: CellState) => {
@@ -80,6 +93,8 @@ export const Board: React.FC<BoardProps> = ({
             const x = index % 10;
             const y = Math.floor(index / 10);
             
+            const isSunkCell = sunkCellKeys.has(`${x},${y}`);
+
             return (
               <div
                 key={`${x}-${y}`}
@@ -90,12 +105,16 @@ export const Board: React.FC<BoardProps> = ({
                   transition-all
                   duration-150
                   relative
-                  ${getCellStyles(state)}
+                  ${isSunkCell ? 'bg-slate-600 shadow-inner' : getCellStyles(state)}
                 `}
               >
                 {state === 'hit' && (
                   <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="w-2/3 h-2/3 bg-red-600 rounded-full animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.8)]" />
+                    <div className={`w-2/3 h-2/3 rounded-full ${
+                      isSunkCell
+                        ? 'bg-red-800 shadow-[0_0_8px_rgba(220,38,38,0.6)]'
+                        : 'bg-red-600 animate-pulse shadow-[0_0_10px_rgba(220,38,38,0.8)]'
+                    }`} />
                   </div>
                 )}
                 {state === 'miss' && (
