@@ -1,5 +1,4 @@
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 
 interface TurnIndicatorProps {
   isPlayerTurn: boolean;
@@ -7,30 +6,40 @@ interface TurnIndicatorProps {
 
 const TurnIndicator: React.FC<TurnIndicatorProps> = ({ isPlayerTurn }) => {
   return (
-    <div className="flex justify-center py-4 px-6 bg-white rounded-xl border border-slate-200 shadow-sm">
-      <div className="relative flex items-center gap-4">
-        <div className={`flex items-center gap-3 px-8 py-2.5 rounded-full border transition-all duration-500 ${
-          isPlayerTurn
-            ? 'bg-sky-50 border-sky-300 shadow-[0_0_0_1px_rgba(14,165,233,0.15)]'
-            : 'bg-red-50 border-red-200'
-        }`}>
-          <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${
-            isPlayerTurn ? 'bg-sky-500' : 'bg-red-500'
-          }`} />
-          <span className={`text-base font-semibold uppercase tracking-[0.15em] transition-colors duration-500 ${
-            isPlayerTurn ? 'text-sky-700' : 'text-red-600'
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm px-5 py-3.5 flex items-center justify-between">
+      {/* Left: status label */}
+      <div className="flex items-center gap-3">
+        <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
+          isPlayerTurn ? 'bg-sky-500 animate-pulse' : 'bg-orange-500 animate-pulse'
+        }`} />
+        <div>
+          <p className={`text-xs font-bold uppercase tracking-[0.2em] ${
+            isPlayerTurn ? 'text-sky-600' : 'text-orange-600'
           }`}>
-            {isPlayerTurn ? 'Tactical Control: Active' : 'Enemy Signature Detected'}
-          </span>
+            {isPlayerTurn ? 'Your Turn' : 'Enemy Turn'}
+          </p>
+          <p className="text-[10px] text-slate-500 mt-0.5">
+            {isPlayerTurn
+              ? 'Select a target on the enemy grid'
+              : 'Enemy is calculating strike…'}
+          </p>
         </div>
+      </div>
 
+      {/* Right: turn chip */}
+      <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+        isPlayerTurn
+          ? 'bg-sky-50 border-sky-200 text-sky-700'
+          : 'bg-orange-50 border-orange-200 text-orange-700'
+      }`}>
         {!isPlayerTurn && (
-          <div className="absolute -right-12 flex gap-1">
-            <div className="w-1 h-1 bg-red-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
-            <div className="w-1 h-1 bg-red-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
-            <div className="w-1 h-1 bg-red-500 rounded-full animate-bounce" />
+          <div className="flex gap-0.5">
+            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.3s]" />
+            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce [animation-delay:-0.15s]" />
+            <div className="w-1 h-1 bg-orange-500 rounded-full animate-bounce" />
           </div>
         )}
+        {isPlayerTurn ? 'Commander' : 'Incoming'}
       </div>
     </div>
   );
